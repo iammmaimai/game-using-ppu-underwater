@@ -40,10 +40,20 @@ module tt_um_vga_example (
     reg [3:0] swim_phase;
     wire [10:0] speed = ui_in[4] ? 11'd4 : 11'd2;
     wire moving = (ui_in[0] ^ ui_in[1]) | (ui_in[2] ^ ui_in[3]);
-    // Full 32x32 diver bounds against solid sand and rocky cave tiles.
+    // Full 32x32 diver bounds against the ORIGINAL Seabed Sand and
+    // Rocky Seabed tiles in the same map.mem used by the renderer.
     // A non-aligned 32px box can overlap three tiles on each axis.
-    reg collision_map [0:4799];
-    initial $readmemh("../data/collision.mem", collision_map);
+    reg [7:0] terrain_map [0:4799];
+    initial $readmemh("../data/map.mem", terrain_map);
+    function solid_tile;
+        input [7:0] tile;
+        begin
+            // 128: assets/seabed-sand.png
+            // 192..207: transformed quadrants of assets/rocky-seabed.png
+            solid_tile = tile == 8'd128 ||
+                         (tile >= 8'd192 && tile <= 8'd207);
+        end
+    endfunction
     function blocked;
         input [10:0] px, py;
         integer tx, ty, ix, iy;
@@ -56,7 +66,7 @@ module tt_um_vga_example (
                     if (tx <= ((px + 11'd31) >> 4) &&
                         ty <= ((py + 11'd31) >> 4)) begin
                         if (tx >= 80 || ty >= 60) blocked = 1'b1;
-                        else if (collision_map[ty * 80 + tx]) blocked = 1'b1;
+                        else if (solid_tile(terrain_map[ty * 80 + tx])) blocked = 1'b1;
                     end
                 end
         end

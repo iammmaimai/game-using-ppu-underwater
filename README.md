@@ -29,7 +29,7 @@ The diver swims at 2 pixels per frame, or 4 while fast swim is held. Diagonals a
 - Position updates happen in vertical blank. Sprite transparency and color are delayed by two clocks to match the background ROM pipeline.
 - Rock tiles (192–207) and sand tiles (128) are solid. The full 32x32 diver bounds stop at them; diagonal movement slides along walls without clipping corners. Plants, coral, bubbles and wreck tiles remain decorative.
 
-If you edit `data/map.mem`, run `python3 tools/build_collision.py` to rebuild `data/collision.mem` before simulation or publishing.
+Collision reads `data/map.mem` directly, just like the background renderer. Tile 128 is the original `assets/seabed-sand.png`; tiles 192–207 are all original `assets/rocky-seabed.png` quadrant/transform variants. There is no separately generated collision map to become out of sync with the visible terrain.
 
 ## Run simulation
 
