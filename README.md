@@ -27,7 +27,9 @@ The diver swims at 2 pixels per frame, or 4 while fast swim is held. Diagonals a
 - Original pixel-art diver, 16x16 pixels displayed at 2x scale.
 - Camera follows the diver and stops at world edges; the diver can then move toward the screen edge.
 - Position updates happen in vertical blank. Sprite transparency and color are delayed by two clocks to match the background ROM pipeline.
-- Cave walls remain decorative; there is no collision detection.
+- Rock tiles (192–207) and sand tiles (128) are solid. The full 32x32 diver bounds stop at them; diagonal movement slides along walls without clipping corners. Plants, coral, bubbles and wreck tiles remain decorative.
+
+If you edit `data/map.mem`, run `python3 tools/build_collision.py` to rebuild `data/collision.mem` before simulation or publishing.
 
 ## Run simulation
 

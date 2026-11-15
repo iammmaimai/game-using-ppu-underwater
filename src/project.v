@@ -40,25 +40,56 @@ module tt_um_vga_example (
     reg [3:0] swim_phase;
     wire [10:0] speed = ui_in[4] ? 11'd4 : 11'd2;
     wire moving = (ui_in[0] ^ ui_in[1]) | (ui_in[2] ^ ui_in[3]);
+    // Full 32x32 diver bounds against solid sand and rocky cave tiles.
+    // A non-aligned 32px box can overlap three tiles on each axis.
+    reg collision_map [0:4799];
+    initial $readmemh("../data/collision.mem", collision_map);
+    function blocked;
+        input [10:0] px, py;
+        integer tx, ty, ix, iy;
+        begin
+            blocked = 1'b0;
+            for (iy = 0; iy < 3; iy = iy + 1)
+                for (ix = 0; ix < 3; ix = ix + 1) begin
+                    tx = (px >> 4) + ix;
+                    ty = (py >> 4) + iy;
+                    if (tx <= ((px + 11'd31) >> 4) &&
+                        ty <= ((py + 11'd31) >> 4)) begin
+                        if (tx >= 80 || ty >= 60) blocked = 1'b1;
+                        else if (collision_map[ty * 80 + tx]) blocked = 1'b1;
+                    end
+                end
+        end
+    endfunction
+    reg [10:0] candidate_x, candidate_y, next_x, next_y;
+    always @* begin
+        candidate_x = player_x;
+        candidate_y = player_y;
+        if (ui_in[1] && !ui_in[0])
+            candidate_x = (player_x + speed > 11'd1248) ? 11'd1248 : player_x + speed;
+        else if (ui_in[0] && !ui_in[1])
+            candidate_x = (player_x < speed) ? 11'd0 : player_x - speed;
+        if (ui_in[3] && !ui_in[2])
+            candidate_y = (player_y + speed > 11'd928) ? 11'd928 : player_y + speed;
+        else if (ui_in[2] && !ui_in[3])
+            candidate_y = (player_y < speed) ? 11'd0 : player_y - speed;
+        // Resolve X first, then Y at the accepted X position. This prevents
+        // diagonal corner clipping and allows sliding along a blocked wall.
+        next_x = blocked(candidate_x, player_y) ? player_x : candidate_x;
+        next_y = blocked(next_x, candidate_y) ? player_y : candidate_y;
+    end
     always @(posedge clk) begin
         if (!rst_n) begin
-            player_x <= 11'd624;
+            player_x <= 11'd640;
             player_y <= 11'd224;
             facing_left <= 1'b0;
             swim_phase <= 4'd0;
         end else if (frame_tick && ena) begin
             if (moving) swim_phase <= swim_phase + 1'b1;
-            if (ui_in[1] && !ui_in[0]) begin
-                player_x <= (player_x + speed > 11'd1248) ? 11'd1248 : player_x + speed;
-                facing_left <= 1'b0;
-            end else if (ui_in[0] && !ui_in[1]) begin
-                player_x <= (player_x < speed) ? 11'd0 : player_x - speed;
-                facing_left <= 1'b1;
-            end
-            if (ui_in[3] && !ui_in[2])
-                player_y <= (player_y + speed > 11'd928) ? 11'd928 : player_y + speed;
-            else if (ui_in[2] && !ui_in[3])
-                player_y <= (player_y < speed) ? 11'd0 : player_y - speed;
+            player_x <= next_x;
+            player_y <= next_y;
+            if (ui_in[1] && !ui_in[0]) facing_left <= 1'b0;
+            else if (ui_in[0] && !ui_in[1]) facing_left <= 1'b1;
         end
     end
     // Keep the diver centered until the viewport reaches a world edge.
