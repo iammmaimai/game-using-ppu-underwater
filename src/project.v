@@ -38,7 +38,7 @@ module tt_um_vga_example (
     reg [10:0] player_x, player_y;
     reg facing_left;
     reg [3:0] swim_phase;
-    wire [10:0] speed = ui_in[4] ? 11'd4 : 11'd2;
+    wire [10:0] speed = 11'd2;
     wire moving = (ui_in[0] ^ ui_in[1]) | (ui_in[2] ^ ui_in[3]);
     // Full 32x32 diver bounds against the ORIGINAL Seabed Sand and
     // Rocky Seabed tiles in the same map.mem used by the renderer.
@@ -192,7 +192,7 @@ module tt_um_vga_example (
     };
     assign uio_out = 8'b0;
     assign uio_oe = 8'b0;
-    wire _unused_ok = &{ena, ui_in[7:5], uio_in};
+    wire _unused_ok = &{ena, ui_in[7:4], uio_in};
 endmodule
 
 // Fixed 80x60 tile map: exactly four screens arranged as a 2x2 world.

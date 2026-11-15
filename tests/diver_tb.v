@@ -33,12 +33,13 @@ initial begin
  buttons=8; step; check(dut.player_y==226,"down");
  buttons=4; step; check(dut.player_y==224,"up");
  buttons=3; step; check(dut.player_x==624,"opposites cancel");
- buttons=26; step; check(dut.player_x==628 && dut.player_y==228,"diagonal boost");
+ buttons=10; step; check(dut.player_x==626 && dut.player_y==226,"diagonal movement");
+ buttons=26; step; check(dut.player_x==628 && dut.player_y==228,"input 4 does not change speed");
  ena=0; step; check(dut.player_x==628,"enable gates movement"); ena=1;
- buttons=26; for(i=0;i<400;i=i+1) step;
+ buttons=10; for(i=0;i<800;i=i+1) step;
  check(dut.player_x==1248 && dut.player_y==928,"maximum world boundary");
  check(dut.camera_x==640 && dut.camera_y==480,"maximum camera boundary");
- buttons=21; for(i=0;i<400;i=i+1) step;
+ buttons=5; for(i=0;i<800;i=i+1) step;
  check(dut.player_x==0 && dut.player_y==0,"minimum world boundary");
  check(dut.camera_x==0 && dut.camera_y==0,"minimum camera boundary");
  // Every original rock variant blocks; decorations remain swimmable.
@@ -50,38 +51,38 @@ initial begin
  dut.terrain_map[8*80+10]=192;
  dut.terrain_map[9*80+10]=192;
  dut.terrain_map[10*80+10]=192;
- buttons=26; step;
- check(dut.player_x==128 && dut.player_y==132,"wall blocks X, Y slides");
+ buttons=10; step;
+ check(dut.player_x==128 && dut.player_y==130,"wall blocks X, Y slides");
  // Floor begins at y=160; reset to exactly touching it.
  @(negedge clk); dut.player_x=128; dut.player_y=128;
  dut.terrain_map[8*80+10]=0;
  dut.terrain_map[9*80+10]=0;
  dut.terrain_map[10*80+8]=128;
  dut.terrain_map[10*80+9]=128;
- buttons=24; step;
- check(dut.player_y==128,"fast swim stops at sand floor");
+ buttons=8; step;
+ check(dut.player_y==128,"swim stops at sand floor");
  buttons=4; step;
  check(dut.player_y==126,"can swim away from floor");
  // Diagonal-only obstacle: neither axis alone overlaps initially.
  for(i=0;i<4800;i=i+1) dut.terrain_map[i]=0;
  @(negedge clk); dut.player_x=128; dut.player_y=128;
  dut.terrain_map[10*80+10]=192;
- buttons=26; step;
- check(dut.player_x==132 && dut.player_y==128,"diagonal corner cannot clip");
+ buttons=10; step;
+ check(dut.player_x==130 && dut.player_y==128,"diagonal corner cannot clip");
  // Middle tile of a 3-tile span must be checked, not only corners.
  for(i=0;i<4800;i=i+1) dut.terrain_map[i]=0;
  @(negedge clk); dut.player_x=130; dut.player_y=128;
  dut.terrain_map[10*80+9]=128;
- buttons=24; step;
+ buttons=8; step;
  check(dut.player_y==128,"middle tile blocks wide overlap");
  // Blocking walls from the left and above.
  for(i=0;i<4800;i=i+1) dut.terrain_map[i]=0;
  @(negedge clk); dut.player_x=128; dut.player_y=128;
  dut.terrain_map[8*80+7]=192;
- buttons=17; step;
+ buttons=1; step;
  check(dut.player_x==128,"left rock collision");
  dut.terrain_map[7*80+8]=192;
- buttons=20; step;
+ buttons=4; step;
  check(dut.player_y==128,"ceiling rock collision");
  // Transparent border and visible mask pixel.
  force dut.sprite.sx=0; force dut.sprite.sy=0; #1;
@@ -89,6 +90,6 @@ initial begin
  force dut.sprite.sx=13; force dut.sprite.sy=6; #1;
  check(dut.sprite_opaque && dut.sprite_color==6'b101111,"mask pixel");
  release dut.sprite.sx; release dut.sprite.sy;
- $display("PASS: diver movement, boost, opposing inputs, enable, world bounds, camera, sprite and terrain collision"); $finish;
+ $display("PASS: diver movement, fixed speed, opposing inputs, enable, world bounds, camera, sprite and terrain collision"); $finish;
 end
 endmodule

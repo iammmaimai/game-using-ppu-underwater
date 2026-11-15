@@ -14,11 +14,10 @@ Connect active-high direction buttons to the existing `ui_in` controller inputs:
 | `ui_in[1]` | Swim right |
 | `ui_in[2]` | Swim up |
 | `ui_in[3]` | Swim down |
-| `ui_in[4]` | Hold for fast swim |
 
-Use the corresponding input toggles/controller mappings in VGA Playground. This project accepts digital directions; it does not implement a USB, Bluetooth or serial gamepad decoder. A physical controller needs an adapter to these five inputs.
+Use the corresponding input toggles/controller mappings in VGA Playground. This project accepts digital directions; it does not implement a USB, Bluetooth or serial gamepad decoder. A physical controller needs an adapter to these four inputs.
 
-The diver swims at 2 pixels per frame, or 4 while fast swim is held. Diagonals are supported; opposing directions cancel independently on each axis. The diver faces the last horizontal direction and animates its fins while swimming. Release all directions to stop. Reset (`rst_n=0`) returns the diver to its starting position. `ena=0` pauses movement.
+The diver swims at a fixed 2 pixels per frame. Diagonals are supported; opposing directions cancel independently on each axis. The diver faces the last horizontal direction and animates its fins while swimming. Release all directions to stop. Reset (`rst_n=0`) returns the diver to its starting position. `ena=0` pauses movement.
 
 ## Rendering
 
@@ -41,7 +40,7 @@ iverilog -g2012 -Wall -s diver_tb -o /tmp/diver_tb project.v hvsync_generator.v 
 vvp /tmp/diver_tb
 ```
 
-The test checks movement in all directions, camera follow, opposite directions, diagonal fast swim, enable, world boundaries, and transparent/opaque sprite pixels.
+The test checks movement in all directions, camera follow, opposite directions, diagonal movement, enable, world boundaries, and transparent/opaque sprite pixels.
 
 ## Assets and provenance
 
