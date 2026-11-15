@@ -1,8 +1,8 @@
 /*
- * Camera-controlled underwater background for Tiny Tapeout VGA Playground.
+ * Controller-driven diver and scrolling underwater background for Tiny Tapeout VGA Playground.
  * Architecture follows the course slides:
  *   VGA (x + camera_x,y + camera_y) -> Map ROM -> BG tile ROM -> RGB222
- * The sea is stationary; the player moves the camera in four directions.
+ * The diver swims through the world and the camera follows.
  */
 `default_nettype none
 
@@ -32,43 +32,40 @@ module tt_um_vga_example (
         .vpos(y)
     );
 
-    // ui_in[0]=left, ui_in[1]=right, ui_in[2]=up, ui_in[3]=down.
-    wire frame_tick = (x == 10'd639 && y == 10'd479);
-    reg [9:0] camera_x;
-    reg [10:0] camera_y;
-    reg [1:0] frame_divider;
-
+    // Active-high directional controller; opposite inputs cancel.
+    // Update in vertical blank so sprite/camera changes cannot tear a frame.
+    wire frame_tick = (x == 10'd0 && y == 10'd480);
+    reg [10:0] player_x, player_y;
+    reg facing_left;
+    reg [3:0] swim_phase;
+    wire [10:0] speed = ui_in[4] ? 11'd4 : 11'd2;
+    wire moving = (ui_in[0] ^ ui_in[1]) | (ui_in[2] ^ ui_in[3]);
     always @(posedge clk) begin
         if (!rst_n) begin
-            camera_x <= 10'd320;
-            camera_y <= 11'd0;
-            frame_divider <= 2'd0;
-        end else if (frame_tick) begin
-            if (frame_divider == 2'd1) begin
-                frame_divider <= 2'd0;
-                if (ui_in[1] && !ui_in[0]) begin
-                    if (camera_x < 10'd640)
-                        camera_x <= camera_x + 2'd2;
-                end else if (ui_in[0] && !ui_in[1]) begin
-                    if (camera_x >= 2)
-                        camera_x <= camera_x - 2'd2;
-                    else
-                        camera_x <= 10'd0;
-                end
-                if (ui_in[3] && !ui_in[2]) begin
-                    if (camera_y < 11'd480)
-                        camera_y <= camera_y + 2'd2;
-                end else if (ui_in[2] && !ui_in[3]) begin
-                    if (camera_y >= 2)
-                        camera_y <= camera_y - 2'd2;
-                    else
-                        camera_y <= 11'd0;
-                end
-            end else begin
-                frame_divider <= frame_divider + 1'b1;
+            player_x <= 11'd624;
+            player_y <= 11'd224;
+            facing_left <= 1'b0;
+            swim_phase <= 4'd0;
+        end else if (frame_tick && ena) begin
+            if (moving) swim_phase <= swim_phase + 1'b1;
+            if (ui_in[1] && !ui_in[0]) begin
+                player_x <= (player_x + speed > 11'd1248) ? 11'd1248 : player_x + speed;
+                facing_left <= 1'b0;
+            end else if (ui_in[0] && !ui_in[1]) begin
+                player_x <= (player_x < speed) ? 11'd0 : player_x - speed;
+                facing_left <= 1'b1;
             end
+            if (ui_in[3] && !ui_in[2])
+                player_y <= (player_y + speed > 11'd928) ? 11'd928 : player_y + speed;
+            else if (ui_in[2] && !ui_in[3])
+                player_y <= (player_y < speed) ? 11'd0 : player_y - speed;
         end
     end
+    // Keep the diver centered until the viewport reaches a world edge.
+    wire [9:0] camera_x = player_x < 11'd304 ? 10'd0 :
+                             player_x > 11'd944 ? 10'd640 : player_x - 11'd304;
+    wire [10:0] camera_y = player_y < 11'd224 ? 11'd0 :
+                              player_y > 11'd704 ? 11'd480 : player_y - 11'd224;
 
     // Fixed 1280x960 world (2x2 screens); camera selects a 640x480 viewport.
     wire [10:0] world_x = {1'b0, x} + {1'b0, camera_x};
@@ -119,7 +116,31 @@ module tt_um_vga_example (
         end
     end
 
-    wire [5:0] color = display_d[1] ? bg_color : 6'b000000;
+    // Original 16x16 sprite scaled 2x; index zero is transparent.
+    wire sprite_inside = world_x >= player_x && world_x < player_x + 11'd32 &&
+                         world_y >= player_y && world_y < player_y + 11'd32;
+    wire [10:0] sprite_dx = world_x - player_x;
+    wire [10:0] sprite_dy = world_y - player_y;
+    wire [3:0] sprite_sx = facing_left ? 4'd15 - sprite_dx[4:1] : sprite_dx[4:1];
+    wire [5:0] sprite_color;
+    wire sprite_opaque;
+    diver_sprite sprite (.sx(sprite_sx), .sy(sprite_dy[4:1]),
+        .kick(swim_phase[3]), .color(sprite_color), .opaque(sprite_opaque));
+    reg [5:0] sprite_color_d0, sprite_color_d1;
+    reg [1:0] sprite_valid_d;
+    always @(posedge clk) begin
+        if (!rst_n) begin
+            sprite_color_d0 <= 0;
+            sprite_color_d1 <= 0;
+            sprite_valid_d <= 0;
+        end else begin
+            sprite_color_d0 <= sprite_color;
+            sprite_color_d1 <= sprite_color_d0;
+            sprite_valid_d <= {sprite_valid_d[0], sprite_inside && sprite_opaque};
+        end
+    end
+    wire [5:0] color = display_d[1] ?
+        (sprite_valid_d[1] ? sprite_color_d1 : bg_color) : 6'b000000;
     wire [1:0] red   = color[5:4];
     wire [1:0] green = color[3:2];
     wire [1:0] blue  = color[1:0];
@@ -130,7 +151,7 @@ module tt_um_vga_example (
     };
     assign uio_out = 8'b0;
     assign uio_oe = 8'b0;
-    wire _unused_ok = &{ena, ui_in[7:4], uio_in};
+    wire _unused_ok = &{ena, ui_in[7:5], uio_in};
 endmodule
 
 // Fixed 80x60 tile map: exactly four screens arranged as a 2x2 world.
@@ -175,6 +196,52 @@ module bg_rom (
 
     always @(posedge clk)
         color <= mem[address];
+endmodule
+
+
+module diver_sprite (
+    input wire [3:0] sx, sy,
+    input wire kick,
+    output reg [5:0] color,
+    output wire opaque
+);
+    reg [63:0] row;
+    reg [3:0] pixel;
+    always @* begin
+        case (sy)
+            4'd0: row = 64'h0000000000000000;
+            4'd1: row = 64'h0000000000000000;
+            4'd2: row = 64'h0000000333000000;
+            4'd3: row = 64'h0000003111300000;
+            4'd4: row = 64'h0000003111301110;
+            4'd5: row = 64'h0000003111134451;
+            4'd6: row = 64'h0001100122155541;
+            4'd7: row = 64'h0013311222216611;
+            4'd8: row = 64'h0133112222221110;
+            4'd9: row = 64'h0011112222221100;
+            4'd10: row = 64'h0000011222211000;
+            4'd11: row = 64'h0003331111110000;
+            4'd12: row = 64'h0033310001133000;
+            4'd13: row = 64'h0001100000133300;
+            4'd14: row = 64'h0000000000011000;
+            4'd15: row = 64'h0000000000000000;
+            default: row = 64'd0;
+        endcase
+        // Alternate the fins to give movement a small swimming kick.
+        if (kick && sy == 4'd12) row = 64'h0001100001333000;
+        if (kick && sy == 4'd13) row = 64'h0033300000110000;
+        pixel = (row >> ((4'd15 - sx) * 4)) & 4'hf;
+        case (pixel)
+            1: color = 6'b000001;
+            2: color = 6'b000110;
+            3: color = 6'b111100;
+            4: color = 6'b001011;
+            5: color = 6'b101111;
+            6: color = 6'b111001;
+            default: color = 6'b000000;
+        endcase
+    end
+    assign opaque = pixel != 0;
 endmodule
 
 `default_nettype wire

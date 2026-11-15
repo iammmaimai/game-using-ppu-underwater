@@ -1,41 +1,46 @@
-# underwater vga tile background
+# Underwater Diver Controller
 
-camera-controlled underwater tile-map background written in verilog for tiny tapeout vga playground.
+A separate diver edition of [underwater_scrolling_background](https://github.com/ssrose-b/underwater_scrolling_background), retaining its underwater tile map and VGA timing.
 
-## controls
+[Open in VGA Playground](https://vga-playground.com/?repo=https://github.com/ssrose-b/underwater-diver-controller)
 
-* `ui_in[0]` - camera left
-* `ui_in[1]` - camera right
-* `ui_in[2]` - camera up
-* `ui_in[3]` - camera down
+## Controller inputs
 
-## features
+Connect active-high direction buttons to the existing `ui_in` controller inputs:
 
-* 640x480 RGB222 VGA output
-* 1280x960 world (80x60 tiles)
-* 16x16 tiles
-* synchronous map ROM and unified 256-tile background ROM
-* two-clock Map ROM -> BG ROM pipeline
-* CC0 underwater sand, kelp, coral, and bubble assets
+| Input | Action |
+| --- | --- |
+| `ui_in[0]` | Swim left |
+| `ui_in[1]` | Swim right |
+| `ui_in[2]` | Swim up |
+| `ui_in[3]` | Swim down |
+| `ui_in[4]` | Hold for fast swim |
 
-## vga playground
+Use the corresponding input toggles/controller mappings in VGA Playground. This project accepts digital directions; it does not implement a USB, Bluetooth or serial gamepad decoder. A physical controller needs an adapter to these five inputs.
 
-[Open this project in VGA Playground](https://vga-playground.com/?repo=https://github.com/ssrose-b/underwater-vga-background)
+The diver swims at 2 pixels per frame, or 4 while fast swim is held. Diagonals are supported; opposing directions cancel independently on each axis. The diver faces the last horizontal direction and animates its fins while swimming. Release all directions to stop. Reset (`rst_n=0`) returns the diver to its starting position. `ena=0` pauses movement.
 
-## tileset assets
+## Rendering
 
-Assets are from the [Underwater Reef Pack](https://freegamesprites.com/en/packs/underwater), licensed CC0.
+- 640x480 RGB222 VGA at a 25.175 MHz pixel clock.
+- Original 1280x960 world, 80x60 map of 16x16 tiles.
+- Original pixel-art diver, 16x16 pixels displayed at 2x scale.
+- Camera follows the diver and stops at world edges; the diver can then move toward the screen edge.
+- Position updates happen in vertical blank. Sprite transparency and color are delayed by two clocks to match the background ROM pipeline.
+- Cave walls remain decorative; there is no collision detection.
 
-* `assets/seabed-sand.png` - 16x16 seabed sand tile
-* `assets/kelp-forest.png` - 16x16 kelp forest tile
-* `assets/coral-reef.png` - 16x16 coral reef tile
-* `assets/shipwreck.png` - 16x16 shipwreck tile
-* `assets/bubble-trail.png` - 8x8 bubble tile
-* `assets/rocky-seabed.png` - 32x32 rocky cave wall tileset
+## Run simulation
 
-The ocean gradient and Bayer 4x4 dithering follow the original Verilog design.
-The PNG tiles are converted to RGB222 and packed into `data/bg-rom.mem`.
-`data/map.mem` stores the 80x60 tile map and selects which tile is displayed.
-The cave blocks are part of the map and use 16 deterministic variations made
-from the four 16x16 quadrants of `rocky-seabed.png`.
+With Icarus Verilog installed, run from the repository root:
 
+```sh
+cd src
+iverilog -g2012 -Wall -s diver_tb -o /tmp/diver_tb project.v hvsync_generator.v ../tests/diver_tb.v
+vvp /tmp/diver_tb
+```
+
+The test checks movement in all directions, camera follow, opposite directions, diagonal fast swim, enable, world boundaries, and transparent/opaque sprite pixels.
+
+## Assets and provenance
+
+Original background source and commit history are retained from `ssrose-b/underwater_scrolling_background` (base commit `29bc41d758754d9742a37e2e9b7e07ad39dd9788`). Existing background asset credits are in [ASSETS.md](ASSETS.md). The new diver artwork is original and dedicated to the public domain under CC0 1.0; see [assets/DIVER-LICENSE.md](assets/DIVER-LICENSE.md). The upstream repository supplies no general code license; this asset dedication applies only to the new diver artwork.

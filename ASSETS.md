@@ -26,3 +26,7 @@ License: CC0 1.0
 
 https://creativecommons.org/publicdomain/zero/1.0/
 
+
+## New diver artwork
+
+`diver_sprite` in `src/project.v` contains an original 16x16 diver with two fin poses, scaled to 32x32 on screen. No external image downloads are required. The diver artwork is CC0 1.0; see `assets/DIVER-LICENSE.md`.
