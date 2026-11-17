@@ -90,6 +90,43 @@ initial begin
  force dut.sprite.sx=13; force dut.sprite.sy=6; #1;
  check(dut.sprite_opaque && dut.sprite_color==6'b101111,"mask pixel");
  release dut.sprite.sx; release dut.sprite.sy;
- $display("PASS: diver movement, fixed speed, opposing inputs, enable, world bounds, camera, sprite and terrain collision"); $finish;
+ // Restore real terrain and restart before testing the game FSM.
+ for(i=0;i<4800;i=i+1) dut.terrain_map[i]=dut.map.mem[i];
+ buttons=0; rst_n=0; repeat(2) @(negedge clk); rst_n=1;
+ check(dut.game_state==dut.PLAYING && dut.coin_count==0,"game reset");
+ // Touching an edge is not overlap. One movement step enters the coin.
+ @(negedge clk); dut.player_x=288; dut.player_y=128;
+ step; check(dut.collected==0,"edge touch is not collection");
+ buttons=2; step; buttons=0;
+ check(dut.collected==1 && dut.coin_count==1,"move into first coin");
+ step; check(dut.coin_count==1,"coin cannot count twice");
+ // The other coins can be picked up in any order; pause gates collection.
+ @(negedge clk); dut.player_x=352; dut.player_y=832;
+ ena=0; step; check(dut.coin_count==1,"pause gates collection");
+ ena=1; step;
+ check(dut.collected==5 && dut.coin_count==2 && dut.game_state==dut.PLAYING,"third coin before second");
+ @(negedge clk); dut.player_x=960; dut.player_y=448;
+ step;
+ check(dut.collected==7 && dut.coin_count==3 && dut.game_state==dut.WON,"last coin wins same frame");
+ buttons=10; step;
+ check(dut.player_x==960 && dut.player_y==448,"won freezes movement");
+ // HUD stays fixed in screen space and final count glyph is a 3.
+ force dut.x=12; force dut.y=12; #1;
+ check(dut.hud_visible && dut.hud_color==6'b111100,"HUD final count pixel");
+ force dut.x=236; force dut.y=226; #1;
+ check(dut.hud_visible && dut.hud_color==6'b111100,"YOU WIN visible");
+ release dut.x; release dut.y;
+ buttons=0; rst_n=0; repeat(2) @(negedge clk); rst_n=1;
+ check(dut.collected==0 && dut.game_state==dut.PLAYING && dut.player_x==640 && dut.player_y==224,"reset restores full game");
+ // Camera-relative coin pixel: the first coin is restored after reset.
+ @(negedge clk); dut.player_x=320; dut.player_y=128; #1;
+ force dut.x=308; force dut.y=132; #1;
+ check(dut.coin_visible,"uncollected coin renders");
+ release dut.x; release dut.y;
+ step;
+ force dut.x=308; force dut.y=132; #1;
+ check(!dut.coin_visible,"collected coin disappears");
+ release dut.x; release dut.y;
+ $display("PASS: diver movement, fixed speed, opposing inputs, enable, world bounds, camera, sprite, terrain collision, coin collection, HUD, win and restart"); $finish;
 end
 endmodule

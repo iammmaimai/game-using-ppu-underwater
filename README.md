@@ -4,6 +4,12 @@ A separate diver edition of [underwater_scrolling_background](https://github.com
 
 [Open in VGA Playground](https://vga-playground.com/?repo=https://github.com/iammmaimai/game-using-ppu-underwater)
 
+## Collect the gold coins
+
+Swim into all three gold coins to win. The fixed top-left counter starts at **0/3** and updates as coins disappear. Collecting the last coin displays **YOU WIN** and stops the diver. Reset (`rst_n=0`) restarts the game and restores the coins.
+
+The game uses a two-state FSM: **PLAYING → WON** when all three collected bits are set. Coins are 16×16 world-space objects at (320,128), (960,448), and (352,832). Collection uses rectangle overlap with the diver’s 32×32 bounds and updates once per frame alongside movement.
+
 ## Controller inputs
 
 Connect active-high direction buttons to the existing `ui_in` controller inputs:
