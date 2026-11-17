@@ -23,7 +23,7 @@ Connect active-high direction buttons to the existing `ui_in` controller inputs:
 
 Use the corresponding input toggles/controller mappings in VGA Playground. This project accepts digital directions; it does not implement a USB, Bluetooth or serial gamepad decoder. A physical controller needs an adapter to these four inputs.
 
-The diver swims at a fixed 2 pixels per frame. Diagonals are supported; opposing directions cancel independently on each axis. The diver faces the last horizontal direction and animates its fins while swimming. Release all directions to stop. Reset (`rst_n=0`) returns the diver to its starting position. `ena=0` pauses movement.
+The diver swims at a fixed 4 pixels per frame. Diagonals are supported; opposing directions cancel independently on each axis. The diver faces the last horizontal direction and animates its fins while swimming. Release all directions to stop. Reset (`rst_n=0`) returns the diver to its starting position. `ena=0` pauses movement.
 
 ## Rendering
 

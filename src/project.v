@@ -38,7 +38,7 @@ module tt_um_vga_example (
     reg [10:0] player_x, player_y;
     reg facing_left;
     reg [3:0] swim_phase;
-    wire [10:0] speed = 11'd2;
+    wire [10:0] speed = 11'd4;
     wire moving = (ui_in[0] ^ ui_in[1]) | (ui_in[2] ^ ui_in[3]);
     // Two-state game: collect all three coins, then reset to play again.
     localparam PLAYING = 1'b0, WON = 1'b1;
