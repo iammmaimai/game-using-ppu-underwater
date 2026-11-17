@@ -2,7 +2,7 @@
 
 A separate diver edition of [underwater_scrolling_background](https://github.com/ssrose-b/underwater_scrolling_background), retaining its underwater tile map and VGA timing.
 
-[Open in VGA Playground](https://vga-playground.com/?repo=https://github.com/ssrose-b/underwater-diver-controller)
+[Open in VGA Playground](https://vga-playground.com/?repo=https://github.com/iammmaimai/game-using-ppu-underwater)
 
 ## Controller inputs
 
